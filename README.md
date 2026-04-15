@@ -1,4 +1,4 @@
-# Cleanpilot
+# FluentCleaner
 
 i built this because at some point you start noticing a pattern
 
@@ -17,7 +17,7 @@ CCleaner used to be great. now it’s mostly a warning.
 
 anyway, im not trying to fix the indutry. just wanted something that doesnt suck. i'll probably get bored, or it'll evolve into something else, and we end up back at square one like always.
 
-for now i just called it **Cleanpilot**.
+for now i just called it **FluentCleaner**.
 
 it wasnt even meant to be public, but a lot of genuinely nice people asked me to release it, so i probably will
 here's a first preview so you can get a feel for the direction. i might end up funding it through donations, we'll see.
