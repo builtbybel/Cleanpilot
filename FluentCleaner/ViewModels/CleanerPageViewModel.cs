@@ -107,7 +107,7 @@ public partial class CleanerPageViewModel : ObservableObject
         if (entry is not null) await CleanSingleEntryAsync(entry);
     }
 
-    // Small quality-of-life helper for the search box.
+    // Small quality-of-life helper for the search box ;)
     [RelayCommand] private void ClearSearch() => SearchText = "";
 
     // --- Load ---------------------------------------------------------------
