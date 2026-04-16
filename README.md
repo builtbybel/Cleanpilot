@@ -39,7 +39,7 @@ beyond speed, there are solid reasons to clean regularly:
 - reclaim disk space that's been quietly eaten up over months
 - troubleshoot app issues caused by corrupted cache
 - shrink backup size
-- privacy — browser data, recently opened file lists, leftover traces from apps you uninstalled
+- privacy, browser data, recently opened file lists, leftover traces from apps you uninstalled
 - keep Windows updates running smoothly
 - or just because a tidy system feels better. also valid.
 
