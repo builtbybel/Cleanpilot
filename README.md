@@ -100,6 +100,25 @@ CCleaner dropping support was honestly part of the motivation to build this
 </details>
 
 <details>
+<summary>can i use a custom winapp2 database?</summary>
+
+yes. FluentCleaner isn't locked to one source.
+
+tools like BleachBit (primarily a Linux cleaner, honestly not great on Windows), and others have their own flavors of winapp2.ini,
+slightly modified versions tuned for their specific needs. you can grab any of them
+(or build your own) and plug it straight into FluentCleaner.
+
+just drop the file somewhere on your system, then head to:
+**Settings > Database > Custom** and point it at your file. that's it.
+
+the official database from the winapp2 project lives here:
+https://github.com/MoscaDotTo/Winapp2, it's community-maintained, 
+updated regularly, and covers thousands of apps. a solid starting point
+if you want more coverage than the default.
+
+</details>
+
+<details>
 <summary>source code?</summary>
 
 coming. still figuring out the license. for now: preview binary, open feedback.
