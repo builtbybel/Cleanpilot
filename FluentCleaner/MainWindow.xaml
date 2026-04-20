@@ -18,19 +18,11 @@
         <Grid x:Name="TitleBarDragArea" Grid.Row="0">
             <StackPanel Orientation="Horizontal" Spacing="10"
                         VerticalAlignment="Center" Margin="15,0,0,0">
-                <FontIcon Glyph="&#xEA99;" FontSize="14"
-                          Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
+                <Image Source="ms-appx:///Assets/AppIcon.ico" Width="16" Height="16"
+                       VerticalAlignment="Center" />
                 <TextBlock Text="FluentCleaner"
                            FontSize="12" FontWeight="SemiBold"
                            VerticalAlignment="Center" />
-                <Border Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                        CornerRadius="3" Padding="5,1"
-                        VerticalAlignment="Center">
-                    <TextBlock Text="BETA"
-                               FontSize="9" FontWeight="SemiBold"
-                               Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                               CharacterSpacing="50" />
-                </Border>
             </StackPanel>
         </Grid>
 

@@ -1,6 +1,6 @@
 namespace FluentCleaner.Models;
 
-// What kind of resource the ExcludeKey protects.
+//What kind of resource the ExcludeKey protects.
 public enum ExcludeType
 {
     File,  // Specific file or filename pattern inside a directory.

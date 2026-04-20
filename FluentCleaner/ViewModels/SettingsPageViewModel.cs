@@ -7,7 +7,7 @@ namespace FluentCleaner.ViewModels;
 
 public partial class SettingsPageViewModel : ObservableObject
 {
-    private const string Winapp2Url  = "https://raw.githubusercontent.com/MoscaDotTo/Winapp2/master/Winapp2.ini";
+    private const string Winapp2Url  = "https://raw.githubusercontent.com/builtbybel/FluentCleaner/master/Winapp2.ini";
     private const string Winapp3Url  = "https://raw.githubusercontent.com/MoscaDotTo/Winapp2/master/Winapp3/Winapp3.ini";
 
     private static string Winapp3LocalPath => Path.Combine(AppContext.BaseDirectory, "Winapp3.ini");

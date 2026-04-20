@@ -16,12 +16,10 @@ public partial class CleanerPageViewModel : ObservableObject
     private readonly DetectionService _detection = new();
     private readonly CleaningService  _cleaner   = new();
 
-    // Last scan is the hand-off between "Analyze" and "Clean".
-    private readonly List<ScanResult> _lastScan = [];
-    // Keep the loaded app list around so search can rebuild the left pane cheaply.
-    private List<CleanerEntry> _loadedEntries = [];
-    // Prevents N disk writes when SelectAll/SelectNone fires per-entry callbacks.
-    private bool _suppressSave;
+    private readonly List<ScanResult> _lastScan = [];       // hand-off between "Analyze" and "Clean"
+    private List<CleanerEntry> _loadedEntries = [];         // kept so search can rebuild the left pane without re-parsing
+    private string _lastPath = "";                          // stored so Refresh can reload without the path being passed again
+    private bool _suppressSave;                             // prevents N disk writes when SelectAll/SelectNone fires per-entry callbacks
 
     // --- Observable state ---------------------------------------------------
 
@@ -32,21 +30,17 @@ public partial class CleanerPageViewModel : ObservableObject
     [ObservableProperty] private string  _searchText    = "";                                         // search box
     [ObservableProperty] private string  _statusText    = "Loading Winapp2.ini...";                   // status bar at the bottom
     [ObservableProperty] private string  _totalSize     = "";                                         // sum of all scan results
-    [ObservableProperty] private string? _loadedFilePath;                                             // path of the currently loaded Winapp2.ini
     [ObservableProperty] private bool    _isBusy;                                                     // locked while a scan or clean is running
-    [ObservableProperty] private bool    _hasResults;                                                 // true once Analyze has finished and found something
-    [ObservableProperty] private int     _detectedCount;                                              // number of installed apps found in the database
 
     // Derived — no own state, everything computed from the observable properties above
 
     public bool   IsEmpty       => Categories.Count == 0;                          // left panel is empty (nothing loaded yet)
     public bool   IsNotEmpty    => Categories.Count > 0;                           // left panel has content
     public bool   HasSearchText => !string.IsNullOrWhiteSpace(SearchText);         // search box is filled
-    public string DetectedBadge => DetectedCount > 0 ? $"({DetectedCount} apps detected)" : "";
-    public bool   IsShowingDetail => SelectedResultLine is not null;               // right panel: detail view showing file paths for one entry
-    public bool   IsShowingList   => SelectedResultLine is null;                   // right panel: normal results list after Analyze
-    public string SelectedAppName => SelectedResultLine?.AppName ?? "";            // name of the open entry shown in the detail header
-    public string SelectedSummary => SelectedResultLine?.Summary ?? "";            // short summary line below the name
+    public bool   IsShowingDetail  => SelectedResultLine is not null;              // right panel: detail view showing file paths for one entry
+    public bool   IsShowingList    => SelectedResultLine is null;                  // right panel: normal results list after Analyze
+    public string SelectedAppName  => SelectedResultLine?.AppName ?? "";           // name of the open entry shown in the detail header
+    public bool   CanRunCleaner    => !IsBusy && Categories.Count > 0;            // bound to IsEnabled on Run Cleaner — Click handler can't disable the button itself
 
     // --- Property change hooks ----------------------------------------------
 
@@ -56,7 +50,6 @@ public partial class CleanerPageViewModel : ObservableObject
         OnPropertyChanged(nameof(IsShowingDetail));
         OnPropertyChanged(nameof(IsShowingList));
         OnPropertyChanged(nameof(SelectedAppName));
-        OnPropertyChanged(nameof(SelectedSummary));
         RebuildDetailLines(value);
     }
 
@@ -75,12 +68,15 @@ public partial class CleanerPageViewModel : ObservableObject
     {
         AnalyzeCommand.NotifyCanExecuteChanged();
         RunCleanerCommand.NotifyCanExecuteChanged();
+        RefreshCommand.NotifyCanExecuteChanged();
+        OnPropertyChanged(nameof(CanRunCleaner));
     }
 
     // --- Commands -----------------------------------------------------------
 
-    [RelayCommand] private void SelectAll()   => SetAllSelected(true);
-    [RelayCommand] private void SelectNone()  => SetAllSelected(false);
+    [RelayCommand] private void SelectAll()      => SetAllSelected(true);
+    [RelayCommand] private void SelectNone()     => SetAllSelected(false);
+    [RelayCommand] private void SelectDefaults() => SetAllDefaults();
     [RelayCommand] private void ExpandAll()   => SetAllExpanded(true);
     [RelayCommand] private void CollapseAll() => SetAllExpanded(false);
 
@@ -107,23 +103,23 @@ public partial class CleanerPageViewModel : ObservableObject
         if (entry is not null) await CleanSingleEntryAsync(entry);
     }
 
-    // Small quality-of-life helper for the search box ;)
-    [RelayCommand] private void ClearSearch() => SearchText = "";
-
     // --- Load ---------------------------------------------------------------
 
     // Parse Winapp2, keep only installed apps, then build the left pane from that.
+    [RelayCommand(CanExecute = nameof(CanRefresh))]
+    private async Task RefreshAsync() => await LoadWinapp2Async(_lastPath);  // reloads the last parsed file from disk
+    private bool CanRefresh() => !IsBusy && !string.IsNullOrEmpty(_lastPath); // disabled until first load and while busy
+
     public async Task LoadWinapp2Async(string filePath)
     {
-        IsBusy = true;
+        _lastPath  = filePath;
+        IsBusy     = true;
         StatusText = "Parsing Winapp2.ini...";
-        LoadedFilePath = filePath;
 
         var allEntries       = await _parser.ParseFileAsync(filePath);
         var installedEntries = await Task.Run(() => allEntries.Where(_detection.IsInstalled).ToList());
 
         _loadedEntries = installedEntries;
-        DetectedCount  = installedEntries.Count;
         RebuildVisibleCategories();
 
         StatusText = $"Analysis ready - {installedEntries.Count} apps found in {allEntries.Count} entries.";
@@ -156,7 +152,6 @@ public partial class CleanerPageViewModel : ObservableObject
 
         TotalSize  = ScanResult.FormatBytes(totalBytes);
         StatusText = $"Scan complete - {totalFiles} files, {totalReg} registry items ({TotalSize})";
-        HasResults = _lastScan.Count > 0;
         IsBusy     = false;
     }
 
@@ -186,7 +181,6 @@ public partial class CleanerPageViewModel : ObservableObject
         ClearAllEntrySizes();
 
         TotalSize  = "";
-        HasResults = false;
         StatusText = skippedBytes > 0
             ? $"Finished — {ScanResult.FormatBytes(freedBytes)} freed · {ScanResult.FormatBytes(skippedBytes)} skipped (files in use)"
             : $"Finished — {removed} items removed · {ScanResult.FormatBytes(freedBytes)} freed.";
@@ -209,7 +203,6 @@ public partial class CleanerPageViewModel : ObservableObject
 
         StatusText = $"{entryVm.Name}: {result.FilesToDelete.Count} files, {result.RegistryToDelete.Count} registry items";
         UpdateTotalsFromLastScan();
-        HasResults = _lastScan.Count > 0;
         IsBusy     = false;
     }
 
@@ -234,7 +227,6 @@ public partial class CleanerPageViewModel : ObservableObject
         entryVm.SizeText = "";
 
         UpdateTotalsFromLastScan();
-        HasResults = _lastScan.Count > 0;
         StatusText = $"{entryVm.Name}: {removed} items removed · {ScanResult.FormatBytes(freedBytes)} freed.";
         IsBusy     = false;
     }
@@ -247,12 +239,12 @@ public partial class CleanerPageViewModel : ObservableObject
         BeginResultsRun($"Scanning {categoryVm.Name}...");
         var progress = new Progress<string>(msg => StatusText = msg);
 
-        foreach (var entryVm in categoryVm.Entries)
+        var selected = categoryVm.Entries.Where(e => e.IsSelected).ToList();
+        foreach (var entryVm in selected)
             await AnalyzeEntryInternalAsync(entryVm.Entry, progress, keepDetailSelection: false);
 
         UpdateTotalsFromLastScan();
-        HasResults = _lastScan.Count > 0;
-        StatusText = $"{categoryVm.Name} scanned - {categoryVm.Entries.Count} entries.";
+        StatusText = $"{categoryVm.Name} scanned - {selected.Count} entries.";
         IsBusy     = false;
     }
 
@@ -266,14 +258,14 @@ public partial class CleanerPageViewModel : ObservableObject
         StatusText         = $"Cleaning {categoryVm.Name}...";
         var progress       = new Progress<string>(msg => StatusText = msg);
 
-        foreach (var vm in categoryVm.Entries.Where(vm => !_lastScan.Any(r => r.Entry == vm.Entry)))
+        var selected = categoryVm.Entries.Where(e => e.IsSelected).ToList();
+        foreach (var vm in selected.Where(vm => !_lastScan.Any(r => r.Entry == vm.Entry)))
             await AnalyzeEntryInternalAsync(vm.Entry, progress, keepDetailSelection: false);
 
-        var results               = _lastScan.Where(r => categoryVm.Entries.Any(vm => vm.Entry == r.Entry)).ToList();
+        var results               = _lastScan.Where(r => selected.Any(vm => vm.Entry == r.Entry)).ToList();
         var (removed, freedBytes) = await CleanResultsAsync(results, progress);
 
         UpdateTotalsFromLastScan();
-        HasResults = _lastScan.Count > 0;
         StatusText = $"{categoryVm.Name}: {removed} items removed · {ScanResult.FormatBytes(freedBytes)} freed.";
         IsBusy     = false;
     }
@@ -364,29 +356,28 @@ public partial class CleanerPageViewModel : ObservableObject
         }
     }
 
-    // All the little "derived state" toggles live here so we do not forget one.
+    // All the little "derived state" toggles live here so we do not forget one
     private void RefreshCategoryState()
     {
         OnPropertyChanged(nameof(IsEmpty));
         OnPropertyChanged(nameof(IsNotEmpty));
         OnPropertyChanged(nameof(HasSearchText));
-        OnPropertyChanged(nameof(DetectedBadge));
+        OnPropertyChanged(nameof(CanRunCleaner));
         AnalyzeCommand.NotifyCanExecuteChanged();
         RunCleanerCommand.NotifyCanExecuteChanged();
     }
 
-    // Fresh run, clean slate.
+    // Resets all result state before a new scan or clean run
     private void BeginResultsRun(string status)
     {
         IsBusy             = true;
-        HasResults         = false;
         SelectedResultLine = null;
         ResultLines.Clear();
         _lastScan.Clear();
         StatusText = status;
     }
 
-    // Snapshot the currently checked entries from the visible list.
+    // Snapshot the currently checked entries from the visible list
     private List<CleanerEntry> GetSelectedEntries() =>
         Categories.SelectMany(c => c.Entries).Where(e => e.IsSelected).Select(e => e.Entry).ToList();
 
@@ -394,7 +385,8 @@ public partial class CleanerPageViewModel : ObservableObject
     private int CountVisibleEntries() =>
         Categories.Sum(c => c.Entries.Count);
 
-    // Core scan path used by single-entry, category, and full analyze flows.
+    // Central scan method — called by single-entry, category, and full analyze flows.
+    // keepDetailSelection: if true, opens the detail view for this entry after scanning.
     private async Task<ScanResult> AnalyzeEntryInternalAsync(CleanerEntry entry, IProgress<string> progress, bool keepDetailSelection)
     {
         // Re-analyzing an entry should replace the old result, not stack duplicates forever.
@@ -417,7 +409,8 @@ public partial class CleanerPageViewModel : ObservableObject
         return result;
     }
 
-    // Cleaning assumes there is a scan result. If we do not have one yet, make one.
+    // "Clean" without prior "Analyze" — scans on the fly before deleting.
+    // Already have a result? Use it directly.
     private async Task<ScanResult> EnsureEntryScanAsync(CleanerEntryViewModel entryVm, IProgress<string> progress)
     {
         var existing = _lastScan.FirstOrDefault(r => r.Entry == entryVm.Entry);
@@ -511,6 +504,17 @@ public partial class CleanerPageViewModel : ObservableObject
         SaveSelection();
     }
 
+    // Restores every entry to its Default=True/False value from the database.
+    // Uses the same suppress-save pattern as SetAllSelected to avoid N disk writes.
+    private void SetAllDefaults()
+    {
+        _suppressSave = true;
+        foreach (var entry in Categories.SelectMany(c => c.Entries))
+            entry.IsSelected = entry.Entry.Default;
+        _suppressSave = false;
+        SaveSelection();
+    }
+
     private void SetAllExpanded(bool value)
     {
         foreach (var cat in Categories)
@@ -531,7 +535,7 @@ public partial class CleanerPageViewModel : ObservableObject
 
 public record ScanResultLine(string AppName, int FileCount, int RegCount, string Size, ScanResult? Result = null)
 {
-    // Short label shown below the app name in the results list
+    // "3988 files | 2 registry"
     public string CountSummary
     {
         get

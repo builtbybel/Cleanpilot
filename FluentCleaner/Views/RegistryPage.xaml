@@ -9,26 +9,29 @@
     Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center"
-                Spacing="12" MaxWidth="480">
-
-        <FontIcon Glyph="&#xE7C3;" FontSize="52"
-                  Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                  HorizontalAlignment="Center" />
+                Spacing="12" MaxWidth="420" Padding="24,0">
 
         <TextBlock Text="Registry Cleaner"
                    Style="{StaticResource TitleTextBlockStyle}"
                    HorizontalAlignment="Center" />
 
-        <TextBlock TextAlignment="Center"
-                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                   TextWrapping="WrapWholeWords"
-                   Text="Yeah, this isn't happening." />
+        <TextBlock Text="Nope."
+                   FontSize="32" FontWeight="Bold"
+                   HorizontalAlignment="Center"
+                   Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}" />
 
-        <TextBlock TextAlignment="Center"
+        <TextBlock Text="Registry cleaners are snake oil. I don't do that. — Belim"
+                   TextAlignment="Center"
+                   TextWrapping="WrapWholeWords"
+                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                   Style="{StaticResource BodyTextBlockStyle}" />
+
+        <TextBlock Text="This spot is reserved for something actually useful. Eventually."
+                   TextAlignment="Center"
+                   TextWrapping="WrapWholeWords"
                    Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                    Style="{StaticResource CaptionTextBlockStyle}"
-                   TextWrapping="WrapWholeWords"
-                   Text="This spot is reserved for something actually useful. A registry cleaner isn't it, no serious tool ships one, and the ones that did have been quietly walking it back ever since. Something better is coming here. Eventually." />
+                   Margin="0,12,0,0" />
 
     </StackPanel>
 </Page>

@@ -13,8 +13,9 @@
     <WindowsPackageType>None</WindowsPackageType>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <AssemblyVersion>26.04.11</AssemblyVersion>
-    <FileVersion>26.04.11</FileVersion>
+    <AssemblyVersion>26.04.15</AssemblyVersion>
+    <FileVersion>26.04.15</FileVersion>
+    <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,5 +26,14 @@
 
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Assets\AppIcon.ico">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\Winapp2.ini">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 </Project>

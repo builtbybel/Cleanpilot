@@ -20,7 +20,7 @@ public static class CategoryResolver
             [3028] = new("Safari", 80),
             [3029] = new("Google Chrome", 90),
             [3030] = new("Thunderbird", 100),
-            [3031] = new("Windows Store", 110),
+            [3031] = new("Microsoft Store", 110),
             [3033] = new("Vivaldi", 130),
             [3034] = new("Brave", 140),
             [3035] = new("Opera GX", 150),

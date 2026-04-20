@@ -1,0 +1,136 @@
+using FluentCleaner.Services;
+using FluentCleaner.ViewModels;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+
+namespace FluentCleaner.Views;
+
+public sealed partial class CleanerPage : Page
+{
+    public CleanerPageViewModel ViewModel { get; } = new();
+
+    private bool _loaded;
+
+    public CleanerPage()
+    {
+        InitializeComponent();
+        // Auto-load on first appearance using whatever path settings resolves to
+        Loaded += async (_, _) =>
+        {
+            if (_loaded) return;
+            _loaded = true;
+
+            AppSettings.Reload();
+            var path = AppSettings.Instance.ResolveWinapp2Path();
+            await ViewModel.LoadWinapp2Async(path);
+        };
+    }
+
+    private void SearchBox_TextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs e)
+    {
+        if (e.Reason == AutoSuggestionBoxTextChangeReason.UserInput)
+            ViewModel.SearchText = sender.Text;
+    }
+
+    // Open the detail view for the clicked result row
+    private void ResultsListView_ItemClick(object sender, ItemClickEventArgs e)
+    {
+        if (e.ClickedItem is ScanResultLine line && line.Result is not null)
+            ViewModel.SelectedResultLine = line;
+    }
+
+    // Entry flyout — Tag="{x:Bind}" gives us the CleanerEntryViewModel directly
+    private async void EntryAnalyze_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: CleanerEntryViewModel vm })
+            await ViewModel.AnalyzeSingleEntryAsync(vm);
+    }
+
+    private async void EntryClean_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: CleanerEntryViewModel vm })
+        {
+            if (!await ConfirmWarningsAsync(ViewModel.GetWarningsForEntry(vm)))
+                return;
+
+            await ViewModel.CleanSingleEntryAsync(vm);
+        }
+    }
+
+    // Category flyout; same trick with CleanerCategoryViewModel
+    private async void CatAnalyze_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: CleanerCategoryViewModel vm })
+            await ViewModel.AnalyzeCategoryAsync(vm);
+    }
+
+    private async void CatClean_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is MenuFlyoutItem { Tag: CleanerCategoryViewModel vm })
+        {
+            if (!await ConfirmWarningsAsync(ViewModel.GetWarningsForCategory(vm)))
+                return;
+
+            await ViewModel.CleanCategoryAsync(vm);
+        }
+    }
+
+    private async void RunCleaner_Click(object sender, RoutedEventArgs e)
+    {
+        if (!ViewModel.RunCleanerCommand.CanExecute(null))
+            return;
+
+        if (!await ConfirmWarningsAsync(ViewModel.GetWarningsForSelectedEntries()))
+            return;
+
+        await ((IAsyncRelayCommand)ViewModel.RunCleanerCommand).ExecuteAsync(null);
+    }
+
+    private async Task<bool> ConfirmWarningsAsync(IReadOnlyList<string> warnings)
+    {
+        if (warnings.Count == 0)
+            return true;
+
+        var dialog = new ContentDialog
+        {
+            XamlRoot = XamlRoot,
+            Title = "Cleaning warning",
+            PrimaryButtonText = "Continue",
+            CloseButtonText = "Cancel",
+            DefaultButton = ContentDialogButton.Close,
+            Content = new ScrollViewer
+            {
+                MaxHeight = 360,
+                Content = new TextBlock
+                {
+                    Text =
+                        "The selected Winapp2 entries include the following warnings:" +
+                        $"{Environment.NewLine}{Environment.NewLine}" +
+                        string.Join($"{Environment.NewLine}{Environment.NewLine}", warnings),
+                    TextWrapping = TextWrapping.Wrap
+                }
+            }
+        };
+
+        return await dialog.ShowAsync() == ContentDialogResult.Primary;
+    }
+
+    // Show/hide the ... button when hovering over a category header or entry row.
+    // the buttons sit at Opacity="0" 
+    private void CatHeader_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) =>
+        SetMenuButtonOpacity(sender, 1);
+    private void CatHeader_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) =>
+        SetMenuButtonOpacity(sender, 0);
+    private void EntryRow_PointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) =>
+        SetMenuButtonOpacity(sender, 1);
+    private void EntryRow_PointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) =>
+        SetMenuButtonOpacity(sender, 0);
+
+    private static void SetMenuButtonOpacity(object sender, double opacity)
+    {
+        if (sender is Grid g)
+            foreach (var btn in g.Children.OfType<Button>())
+                btn.Opacity = opacity;
+    }
+}

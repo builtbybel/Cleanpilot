@@ -176,14 +176,14 @@ public class CleaningService
         if (item.ValueName is not null)
         {
             using var key = root.OpenSubKey(subKey, writable: true);
-            key?.DeleteValue(item.ValueName, throwOnMissingValue: false);
+            key?.DeleteValue(item.ValueName, throwOnMissingValue: false); //only delete the value, not the whole key
         }
         else
         {
             var parentSubKey = Path.GetDirectoryName(subKey)?.Replace('/', '\\') ?? "";
             var keyName      = Path.GetFileName(subKey);
             using var parent = root.OpenSubKey(parentSubKey, writable: true);
-            parent?.DeleteSubKeyTree(keyName, throwOnMissingSubKey: false);
+            parent?.DeleteSubKeyTree(keyName, throwOnMissingSubKey: false); // delete the whole key, including any subkeys; if it's already gone, skip silently
         }
     }
 
@@ -294,7 +294,7 @@ public class CleaningService
             }
 
             // Literal pattern > the file must be a direct child of DirPrefix, not deeper.
-            // e.g. FILE|docs\|readme.pdf  →  protects docs\readme.pdf but NOT docs\sub\readme.pdf
+            // e.g. FILE|docs\|readme.pdf > protects docs\readme.pdf but NOT docs\sub\readme.pdf
             var relativePath = filePath[DirPrefix.Length..];
             return relativePath.Equals(Pattern, StringComparison.OrdinalIgnoreCase);
         }

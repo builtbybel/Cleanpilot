@@ -14,8 +14,9 @@ public partial class CleanerCategoryViewModel : ObservableObject
 
     [ObservableProperty] private bool _isExpanded = false;
 
-    [RelayCommand] private void SelectAll()  => Entries.ToList().ForEach(e => e.IsSelected = true);
-    [RelayCommand] private void SelectNone() => Entries.ToList().ForEach(e => e.IsSelected = false);
+    [RelayCommand] private void SelectAll()      => Entries.ToList().ForEach(e => e.IsSelected = true);           // check every entry in this category
+    [RelayCommand] private void SelectNone()     => Entries.ToList().ForEach(e => e.IsSelected = false);          // uncheck every entry in this category
+    [RelayCommand] private void SelectDefaults() => Entries.ToList().ForEach(e => e.IsSelected = e.Entry.Default); // restore the Default=True/False values from the database
 
     public CleanerCategoryViewModel(string name) => Name = name;
 }

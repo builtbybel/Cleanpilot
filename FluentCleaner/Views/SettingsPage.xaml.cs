@@ -15,7 +15,6 @@ public sealed partial class SettingsPage : Page
     public SettingsPage()
     {
         InitializeComponent();
-        // Refresh stats whenever the user navigates back to this page
         Loaded += (_, _) => ViewModel.Refresh();
     }
 
