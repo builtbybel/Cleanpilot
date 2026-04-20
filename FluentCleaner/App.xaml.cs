@@ -68,7 +68,7 @@ public partial class App : Application
         if (MainWindow is not { } win) return;
 
         win.NavigationFrame.RequestedTheme = elementTheme;
-
+//// TODO: Fix this mess, known bug inside systemdefault! 
         // Update titlebar button icon colors; Windows doesn't do this automatically
         // when RequestedTheme changes on the content, so we sync them manually.
         if (!AppWindowTitleBar.IsCustomizationSupported()) return;
