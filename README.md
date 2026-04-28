@@ -1,4 +1,5 @@
 # FluentCleaner
+### modern, transparent, no spyware, no dark patterns, no fake registry magic
 
 _i built my own take on a cleaner, inspired by the old CCleaner from back in the 2006 days, just adapted to how things should work today. modern (built with WinUI 3), minimal and focused on actually cleaning what matters (without all the usual nonsense)_
  
